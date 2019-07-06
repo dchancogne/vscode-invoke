@@ -1,7 +1,14 @@
 {
-  "name": "vsc-invoke",
+  "name": "vscode-invoke",
   "displayName": "Invoke (Python Task Executor)",
-  "description": "Support for executing Invoke task from VS Code",
+  "description": "Support for executing Invoke task from Visual Studio Code",
+  "author": {
+   "name": "David Chancogne"
+  },
+  "repository": {
+   "type": "git",
+   "url": "https://github.com/dchancogne/vscode-invoke.git"
+  },
   "version": "0.0.12",
   "publisher": "dchanco",
   "icon": "images/invoke-icon.png",
