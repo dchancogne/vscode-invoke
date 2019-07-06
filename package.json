@@ -51,6 +51,7 @@
     }
   },
   "scripts": {
+    "publish": "vsce publish",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "node ./node_modules/vscode/bin/test"
   },
