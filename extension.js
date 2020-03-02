@@ -59,7 +59,9 @@ function activate(context) {
       }
       // For each workspace see if folder matches path of currently open
       // file, i.e. are we in the active workspace
-      vscode.workspace.workspaceFolders.forEach((folder, _index) => {
+      // TODO: Does this capture everthing?
+      // FIXME: Remove unused variable
+      vscode.workspace.workspaceFolders.forEach((folder, index) => {
          const p = folder.uri.fsPath
          if (currentFile && currentFile.startsWith(p)) {
             // Is there a tasks.py at the root of the active workspace?
