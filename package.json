@@ -24,7 +24,8 @@
   ],
   "activationEvents": [
     "onCommand:extension.invokeVersion",
-    "onCommand:extension.invokeTask"
+    "onCommand:extension.invokeTaskCommand",
+    "onView:extension.invokeView"
   ],
   "main": "./extension",
   "contributes": {
@@ -38,6 +39,14 @@
          "title": "Invoke a task"
       }
     ],
+    "views": {
+      "debug": [
+        {
+          "id": "extension.invokeView",
+          "name": "Invoke"
+        }
+      ]
+    },
     "configuration": {
        "type": "object",
        "title": "VSC Invoke extension configuration",

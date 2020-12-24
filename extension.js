@@ -41,10 +41,13 @@ function activate(context) {
       })
    })
 
-   let callTask = vscode.commands.registerCommand('extension.invokeTask', function () {
+   context.subscriptions.push(showVersion)
+   
+   let findTasks = function(callback, showOutput) {
 
       if (!vscode.workspace.workspaceFolders) {
-         vscode.window.showErrorMessage('No Project/Workspace opened')
+         if (showOutput)
+            vscode.window.showErrorMessage('No Project/Workspace opened')
          return
       }
 
@@ -78,20 +81,22 @@ function activate(context) {
             }
          }
       })
-      if (fs.existsSync(`${path}/tasks.py`)) {
+      if (fs.existsSync(`${path}/tasks.py`) && showOutput) {
          vscode.window.showInformationMessage("Using task definitions: " + path + "/tasks.py")
       }
-      if (fs.existsSync(`${path}/tasks`)) {
+      if (fs.existsSync(`${path}/tasks`) && showOutput) {
          vscode.window.showInformationMessage("Using tasks package definitions: " + path + "/tasks")
       }
       if (!fs.existsSync(`${path}/tasks.py`) && !fs.existsSync(`${path}/tasks`)) {
-         vscode.window.showErrorMessage('No task definition file found (tasks or tasks.py)')
+         if (showOutput)
+            vscode.window.showErrorMessage('No task definition file found (tasks or tasks.py)')
          return
       }
       // Get list of tasks. --list-format returns JSON
       exec(`cd ${path} && ${invokeCmd} --list --list-format=json`, function (err, stdOut, stdErr) {
          if (err) {
-            vscode.window.showErrorMessage(`Unable to get list of tasks in ${path}: ${stdErr}`)
+            if (showOutput)
+               vscode.window.showErrorMessage(`Unable to get list of tasks in ${path}: ${stdErr}`)
             return
          }
          // Parse JSON result
@@ -104,28 +109,69 @@ function activate(context) {
             .reduce((prev, cur) => prev.concat(cur), [])
          // Get simple tasks and add tasks from collections from above 
          var tasks = JSON.parse(stdOut).tasks.map(e => e.name).concat(collections)
-         var lastArgs = ''
-         vscode.window.showQuickPick(tasks, { placeHolder: "Select or type a task" }).then(function (aTask) {
-            if (typeof aTask != 'undefined') {
-               console.log('Task selected: ')
-               console.log(aTask)
-               vscode.window.showInputBox({ prompt: "Task arguments", placeHolder: "arguments", value: this.lastArgs }).then(function (args) {
-                  // args is undefined if the user escaped
-                  if (typeof args != 'undefined') {
-                     if (args) this.lastArgs = args
-                     var term = vscode.window.createTerminal(`Invoke ${aTask}`)
-                     term.show()
-                     term.sendText(`${invokeCmd} ${aTask} ${args}`)
-                  }
-               })
-            }
-         })
+         
+         callback(tasks)
       })
 
-   })
+   }
 
-   context.subscriptions.push(showVersion)
-   context.subscriptions.push(callTask)
+   // Invoke Tasks Command
+   findTasks(function(tasks){
+      let callTask = vscode.commands.registerCommand('extension.invokeTask', function(task){
+         var lastArgs = ''
+         if (task) {
+            var term = vscode.window.createTerminal(`Invoke ${task}`)
+            term.show()
+            term.sendText(`${invokeCmd} ${task}`)
+         }
+         else {
+            vscode.window.showQuickPick(tasks, { placeHolder: "Select or type a task" }).then(function (aTask) {
+               if (typeof aTask != 'undefined') {
+                  console.log('Task selected: ')
+                  console.log(aTask)
+                  vscode.window.showInputBox({ prompt: "Task arguments", placeHolder: "arguments", value: this.lastArgs }).then(function (args) {
+                     // args is undefined if the user escaped
+                     if (typeof args != 'undefined') {
+                        if (args) this.lastArgs = args
+                        var term = vscode.window.createTerminal(`Invoke ${aTask}`)
+                        term.show()
+                        term.sendText(`${invokeCmd} ${aTask} ${args}`)
+                        term.dispose()
+                     }
+                  })
+               }
+            })
+         }
+         
+      })
+      context.subscriptions.push(callTask)
+   }, true)
+
+   // Invoke Run view, don't output messages
+   findTasks(function(tasks){
+      let treeDataProvider = {
+         getChildren: function(e){
+            var children = []
+            tasks.forEach(function(task, i){
+               children.push({
+                  label: task,
+                  command: {
+                     command: 'extension.invokeTask',
+                     arguments: [task]
+                  },
+                  tooltip: `invoke ${task} in a new terminal`
+               })
+            })
+            return children
+         },
+         getTreeItem: function(task){
+            return task
+         }
+      }
+      let viewProvider = vscode.window.registerTreeDataProvider('extension.invokeView', treeDataProvider)
+      context.subscriptions.push(viewProvider)
+   });
+
 }
 exports.activate = activate
 
